@@ -1,3 +1,14 @@
+CREATE SECRET confluent_username AS :'username';
+CREATE SECRET confluent_password AS :'password';
+
+CREATE CONNECTION confluent_cloud TO KAFKA (
+BROKER :'bootstrap_servers',
+SASL MECHANISMS = 'PLAIN',
+SASL USERNAME = SECRET confluent_username,
+SASL PASSWORD = SECRET confluent_password,
+PROGRESS TOPIC = 'materialize_progress'
+);
+
 CREATE SOURCE temperature_readings
 FROM KAFKA CONNECTION confluent_cloud (TOPIC 'temperature_readings')
 FORMAT JSON

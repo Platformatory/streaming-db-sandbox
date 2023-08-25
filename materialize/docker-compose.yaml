@@ -64,6 +64,12 @@ services:
     depends_on:
       - materialized
     command: sleep infinity
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_materialize}
 
 volumes:
   mzdata: {}

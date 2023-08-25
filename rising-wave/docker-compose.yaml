@@ -22,6 +22,11 @@ services:
               --command-config /tmp/client.properties \
               --create --if-not-exists \
               --partitions 6 --topic $KAFKA_OUTPUT_TOPIC
+            
+        kafka-topics --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
+              --command-config /tmp/client.properties \
+              --create --if-not-exists \
+              --partitions 6 --topic $KAFKA_AVG_OUTPUT_TOPIC
     command: echo "Done"
     environment:
       KAFKA_TOPIC: ${KAFKA_TOPIC}
@@ -29,6 +34,7 @@ services:
       KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
       KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
       KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_rising_wave}
+      KAFKA_AVG_OUTPUT_TOPIC: ${KAFKA_AVG_OUTPUT_TOPIC:-avg_temperature_rising_wave}
     restart: on-failure
 
   producer:
@@ -266,12 +272,19 @@ services:
       retries: 5
 
   # Access the cli by running:
-  # > docker-compose exec -it psql psql postgres://root@frontend-node:4566/dev
+  # > docker-compose exec -it psql psql -v bootstrap_servers="$KAFKA_BOOTSTRAP_SERVERS" -v username="$KAFKA_SASL_USERNAME" -v password="$KAFKA_SASL_PASSWORD" postgres://root@frontend-node:4566/dev
   psql:
     image: postgres
     depends_on:
       - frontend-node
     command: sleep infinity
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_rising_wave}
+      KAFKA_AVG_OUTPUT_TOPIC: ${KAFKA_AVG_OUTPUT_TOPIC:-avg_temperature_rising_wave}
 
 
 volumes:
