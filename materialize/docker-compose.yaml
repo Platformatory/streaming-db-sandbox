@@ -1,0 +1,71 @@
+---
+version: '2'
+services:
+  init:
+    image: confluentinc/cp-kafka:7.4.1
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        cat <<EOF >>/tmp/client.properties
+        security.protocol=SASL_SSL
+        sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$KAFKA_SASL_USERNAME" password="$KAFKA_SASL_PASSWORD";
+        sasl.mechanism=PLAIN
+        EOF
+
+        kafka-topics --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
+              --command-config /tmp/client.properties \
+              --create --if-not-exists \
+              --partitions 6 --topic $KAFKA_TOPIC
+
+        kafka-topics --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
+              --command-config /tmp/client.properties \
+              --create --if-not-exists \
+              --partitions 1 --topic materialize_progress
+
+        kafka-topics --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
+              --command-config /tmp/client.properties \
+              --create --if-not-exists \
+              --partitions 6 --topic $KAFKA_OUTPUT_TOPIC
+    command: echo "Done"
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_materialize}
+    restart: on-failure
+
+  producer:
+    build: ../producer
+    depends_on:
+      - init
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+
+  materialized:
+    image: materialize/materialized:v0.66.0
+    container_name: materialized
+    depends_on:
+      - producer
+    volumes:
+      - mzdata:/mzdata
+    ports:
+      - 6875:6875
+      - 6876:6876
+
+  # Access the cli by running:
+  # > docker-compose exec -it psql psql postgres://materialize@materialized:6875/materialize
+  psql:
+    image: postgres
+    depends_on:
+      - materialized
+    command: sleep infinity
+
+volumes:
+  mzdata: {}
+
+  
