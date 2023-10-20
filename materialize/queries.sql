@@ -31,6 +31,15 @@ SELECT
     temperature * 9/5 + 32 AS temperature_fahrenheit
 FROM temperature_json;
 
+
+CREATE MATERIALIZED VIEW avg_temperature AS
+SELECT sensor_id,
+       AVG(temperature) AS avg_temperature
+FROM temperature_json
+WHERE mz_now() >= record_timestamp
+  AND mz_now() < record_timestamp + 5000
+GROUP BY sensor_id, temperature;
+
 -- Check the converted data
 -- SELECT * FROM temperature_conversion;
 

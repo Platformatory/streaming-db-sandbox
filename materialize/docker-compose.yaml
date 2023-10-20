@@ -27,6 +27,11 @@ services:
               --command-config /tmp/client.properties \
               --create --if-not-exists \
               --partitions 6 --topic $KAFKA_OUTPUT_TOPIC
+
+        kafka-topics --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
+              --command-config /tmp/client.properties \
+              --create --if-not-exists \
+              --partitions 6 --topic $KAFKA_AVG_OUTPUT_TOPIC
     command: echo "Done"
     environment:
       KAFKA_TOPIC: ${KAFKA_TOPIC}
@@ -34,6 +39,7 @@ services:
       KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
       KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
       KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_materialize}
+      KAFKA_AVG_OUTPUT_TOPIC: ${KAFKA_AVG_OUTPUT_TOPIC:-avg_temperature_materialize}
     restart: on-failure
 
   producer:
@@ -58,7 +64,7 @@ services:
       - 6876:6876
 
   # Access the cli by running:
-  # > docker-compose exec -it psql psql postgres://materialize@materialized:6875/materialize
+  # > docker-compose exec -it psql psql -v bootstrap_servers="$KAFKA_BOOTSTRAP_SERVERS" -v username="$KAFKA_SASL_USERNAME" -v password="$KAFKA_SASL_PASSWORD" postgres://materialize@materialized:6875/materialize
   psql:
     image: postgres
     depends_on:
@@ -70,6 +76,7 @@ services:
       KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
       KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
       KAFKA_OUTPUT_TOPIC: ${KAFKA_OUTPUT_TOPIC:-temperature_converted_materialize}
+      KAFKA_AVG_OUTPUT_TOPIC: ${KAFKA_AVG_OUTPUT_TOPIC:-avg_temperature_materialize}
 
 volumes:
   mzdata: {}
